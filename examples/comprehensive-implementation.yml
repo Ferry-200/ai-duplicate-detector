@@ -1,8 +1,10 @@
-name: AI-Powered GitHub Issue Duplicates & Relations Detector
+name: AI-Powered GitHub Issue Duplicates & Relations Detector (Comprehensive)
 
-# This workflow automatically detects potential duplicate issues using OpenAI embeddings
-# and machine learning techniques. It runs when issues are created or modified, and can
-# also be triggered manually for specific issues.
+# This is a comprehensive implementation that shows all the details of how
+# the AI Duplicate Issue Detector works under the hood. This approach gives
+# you more control over each step of the process.
+#
+# For most users, the simpler example in duplicate-detection.yml is recommended.
 #
 # Key Features:
 # - Automatic duplicate detection for new and edited issues
@@ -11,32 +13,6 @@ name: AI-Powered GitHub Issue Duplicates & Relations Detector
 # - Persistent caching of embeddings for performance
 # - Concurrent execution handling to prevent conflicts
 # - Comprehensive error handling and timeouts
-#
-# Workflow Process:
-# 1. Waits for potential edits to settle (3.5 minutes)
-# 2. Sets up Python environment and dependencies
-# 3. Manages embedding cache and issue data
-# 4. Updates embeddings for all issues
-# 5. Performs duplicate detection
-#
-# Dependencies:
-# - Python 3.12
-# - OpenAI API access
-# - GitHub API access
-# - Various Python packages (httpx, requests, openai, numpy, tiktoken, PyGithub)
-#
-# Required Secrets:
-# - GITHUB_TOKEN: For GitHub API access
-# - OPENAI_API_KEY: For OpenAI API access
-#
-# Cache Structure:
-# - Embeddings database: .github/cache/embeddings.db
-# - Issue cache: Maintained between runs
-#
-# Permissions:
-# - issues: write (for adding labels and comments)
-# - contents: read (for accessing repository)
-# - id-token: write (for authentication)
 
 env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -107,16 +83,24 @@ jobs:
 
       - name: Cache Issue Data
         run: |
-          python .github/scripts/fetch_bulk_issues.py
+          python src/fetch_bulk_issues.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DUPLICATE_THRESHOLD: 0.85
+          RELATED_ISSUE_THRESHOLD: 0.82
+          EMBEDDING_MODEL: 'text-embedding-3-large'
+          MAX_ISSUES_TO_PROCESS: 100
 
       - name: Update Embeddings
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DUPLICATE_THRESHOLD: 0.85
+          RELATED_ISSUE_THRESHOLD: 0.82
+          EMBEDDING_MODEL: 'text-embedding-3-large'
+          MAX_ISSUES_TO_PROCESS: 100
         run: |
-          python .github/scripts/update_embeddings.py
+          python src/update_embeddings.py
 
       - name: Run Duplicate Detection
         if: github.event.issue && github.event.issue.number > 0 || github.event_name == 'workflow_dispatch'
@@ -124,5 +108,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          DUPLICATE_THRESHOLD: 0.85
+          RELATED_ISSUE_THRESHOLD: 0.82
+          EMBEDDING_MODEL: 'text-embedding-3-large'
+          MAX_ISSUES_TO_PROCESS: 100
         run: |
-          python .github/scripts/detect_duplicates.py
+          python src/detect_duplicates.py 

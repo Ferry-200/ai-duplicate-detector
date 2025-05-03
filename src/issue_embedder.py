@@ -52,7 +52,7 @@ class IssueEmbedder:
         """
         self.api_key = api_key or os.environ["OPENAI_API_KEY"]
         self.client = OpenAI(api_key=self.api_key)  # Minimal initialization
-        self.model = "text-embedding-3-large"
+        self.model = os.environ.get("EMBEDDING_MODEL", "text-embedding-3-large")
         self.max_retries = 3
         self.retry_delay = 1  # Initial delay in seconds
     

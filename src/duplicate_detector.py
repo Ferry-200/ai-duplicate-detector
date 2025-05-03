@@ -45,9 +45,10 @@ from embedding_store import EmbeddingStore
 from issue_embedder import IssueEmbedder
 from openai_rate_limiter import OpenAIRateLimiter
 
-# Constants
+# Constants - with environment variable fallbacks
 SIMILARITY_CLUSTERING_THRESHOLD = 0.01  # Issues within 0.01 similarity score are considered a cluster
-RELATED_ISSUE_THRESHOLD = 0.82  # Issues above this threshold but below duplicate threshold are "related"
+# Get RELATED_ISSUE_THRESHOLD from environment or use default
+RELATED_ISSUE_THRESHOLD = float(os.environ.get("RELATED_ISSUE_THRESHOLD", 0.82))
 
 class DuplicateDetector:
     """Detects duplicate issues using embeddings and GPT verification.
@@ -84,13 +85,13 @@ class DuplicateDetector:
         self.embedder = IssueEmbedder(api_key=self.api_key)
         self.gpt_client = OpenAI(api_key=self.api_key)
         
-        # Thresholds for duplicate detection
+        # Thresholds for duplicate detection - read from environment variables or use defaults
         self.embedding_high_threshold = 0.95  # Above this, use embedding only
-        self.embedding_low_threshold = 0.85   # Below this, mark as low confidence
+        self.embedding_low_threshold = float(os.environ.get("DUPLICATE_THRESHOLD", 0.85))
         self.gpt_confidence_threshold = 0.7   # Lower threshold from 0.8 to 0.7 to be more aggressive with duplicates
         
-        # Limit maximum number of candidates to check (prevents excessive comparisons)
-        self.max_candidates = 20  # Increased from 5 to 20 to ensure we find duplicates
+        # Maximum number of candidates to check - read from environment or use default
+        self.max_candidates = int(os.environ.get("MAX_ISSUES_TO_PROCESS", 20))
         self.rate_limiter = OpenAIRateLimiter()
         self.gpt_tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo-1106")
         
