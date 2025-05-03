@@ -28,7 +28,7 @@ This GitHub Action automatically detects duplicate and related issues in your re
 #### Marketplace Installation
 The easiest way to install is directly from the GitHub Marketplace:
 
-1. Go to the [AI Duplicate Issue Detector](https://github.com/marketplace/actions/ai-duplicate-issue-detector) on GitHub Marketplace
+1. Go to the [AI Duplicate Issue Detector](https://github.com/marketplace/actions/ai-powered-github-issue-duplicates-relations-detector) on GitHub Marketplace
 2. Click "Use latest version"
 3. Follow the setup instructions to add the workflow to your repository
 
