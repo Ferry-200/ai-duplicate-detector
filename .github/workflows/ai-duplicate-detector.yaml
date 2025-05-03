@@ -1,0 +1,128 @@
+name: AI-Powered GitHub Issue Duplicates & Relations Detector
+
+# This workflow automatically detects potential duplicate issues using OpenAI embeddings
+# and machine learning techniques. It runs when issues are created or modified, and can
+# also be triggered manually for specific issues.
+#
+# Key Features:
+# - Automatic duplicate detection for new and edited issues
+# - Manual triggering capability for specific issues
+# - Embedding-based similarity detection using OpenAI's API
+# - Persistent caching of embeddings for performance
+# - Concurrent execution handling to prevent conflicts
+# - Comprehensive error handling and timeouts
+#
+# Workflow Process:
+# 1. Waits for potential edits to settle (3.5 minutes)
+# 2. Sets up Python environment and dependencies
+# 3. Manages embedding cache and issue data
+# 4. Updates embeddings for all issues
+# 5. Performs duplicate detection
+#
+# Dependencies:
+# - Python 3.12
+# - OpenAI API access
+# - GitHub API access
+# - Various Python packages (httpx, requests, openai, numpy, tiktoken, PyGithub)
+#
+# Required Secrets:
+# - GITHUB_TOKEN: For GitHub API access
+# - OPENAI_API_KEY: For OpenAI API access
+#
+# Cache Structure:
+# - Embeddings database: .github/cache/embeddings.db
+# - Issue cache: Maintained between runs
+#
+# Permissions:
+# - issues: write (for adding labels and comments)
+# - contents: read (for accessing repository)
+# - id-token: write (for authentication)
+
+env:
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+  ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+on:
+  issues:
+    types: [opened, edited, reopened]
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      issue_number:
+        description: 'Issue number to check for duplicates'
+        required: true
+        type: number
+
+# Add concurrency group to prevent multiple runs for the same issue
+concurrency:
+  # Use issue number if available, otherwise use a unique identifier
+  group: ${{ github.event.issue.number || github.run_id }}
+  # Cancel in-progress runs
+  cancel-in-progress: true
+
+permissions:
+  issues: write
+  contents: read
+  id-token: write
+
+jobs:
+  detect-duplicates:
+    runs-on: ubuntu-latest
+    # Add timeout to ensure workflow doesn't run indefinitely
+    timeout-minutes: 10
+    steps:
+      - name: Wait for potential edits
+        if: github.event.issue
+        run: |
+          echo "Waiting 3.5 minutes for potential additional edits..."
+          sleep 210
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "httpx==0.27.2"  # Install compatible httpx version first
+          pip install requests==2.32.3 openai==1.14.0 numpy==1.26.4 tiktoken==0.6.0 PyGithub==2.3.0
+
+      - name: Create Cache Directory
+        run: mkdir -p .github/cache
+
+      # Use cache instead of artifacts to persist embeddings between workflow runs
+      - name: Cache embeddings database
+        uses: actions/cache@v3
+        id: cache-embeddings
+        with:
+          path: |
+            .github/cache/embeddings.db
+          # Use a simple key since we always want the latest version
+          key: embeddings-db-${{ github.run_id }}
+          restore-keys: |
+            embeddings-db-
+
+      - name: Cache Issue Data
+        run: |
+          python .github/scripts/fetch_bulk_issues.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Embeddings
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python .github/scripts/update_embeddings.py
+
+      - name: Run Duplicate Detection
+        if: github.event.issue && github.event.issue.number > 0 || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          python .github/scripts/detect_duplicates.py
