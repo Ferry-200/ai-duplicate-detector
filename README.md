@@ -13,6 +13,8 @@ This GitHub Action automatically detects duplicate and related issues in your re
 - **Comprehensive Logging**: Detailed logging for troubleshooting and monitoring
 - **Open Issues Only**: Only processes open issues to avoid duplicating closed issues
 
+![Example of a duplicate detection comment](assets/duplicate-detection-comment.png)
+
 ## 🚀 Setup
 
 ### Prerequisites
@@ -166,6 +168,8 @@ steps:
       sleep 210
 ```
 
+![Duplicate Detection Logs](assets/duplicate-detection-logs-outline.png)
+
 The workflow also has concurrency control to prevent multiple runs for the same issue:
 
 ```yaml
@@ -202,6 +206,8 @@ The database is automatically updated when the action runs.
 
 3. For related issues (similarity between related-issue-threshold and duplicate-threshold):
    - Adds cross-reference comments to both issues
+
+![Duplicate Detection Logs Details](assets/duplicate-detection-logs-details.png)
 
 ### Issue Type Prioritization
 
