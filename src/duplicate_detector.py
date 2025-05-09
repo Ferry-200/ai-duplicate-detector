@@ -83,7 +83,7 @@ class DuplicateDetector:
         self.api_key = api_key or os.environ["OPENAI_API_KEY"]
         self.store = EmbeddingStore()
         self.embedder = IssueEmbedder(api_key=self.api_key)
-        self.gpt_client = OpenAI(api_key=self.api_key)
+        self.gpt_client = OpenAI(base_url="https://api.gptsapi.net", api_key=self.api_key)
         
         # Thresholds for duplicate detection - read from environment variables or use defaults
         self.embedding_high_threshold = 0.95  # Above this, use embedding only
